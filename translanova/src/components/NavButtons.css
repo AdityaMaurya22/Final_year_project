@@ -1,0 +1,28 @@
+.nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-buttons button {
+  background-color: #9EAFFF; /* Light blue background for the buttons */
+  border: 1px solid #6E85FF; /* Light blue border */
+  border-radius: 50%; /* Makes the button perfectly circular */
+  width: 4rem; /* Size of the button */
+  height: 4rem; /* Size of the button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  color: #fff; /* Blue color for the arrow icons */
+  font-size: 2rem;
+  margin: 1rem; /* Space between buttons if you want them on the same line */
+}
+
+.nav-buttons button:disabled {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+  color: #ccc;
+  cursor: not-allowed;
+}

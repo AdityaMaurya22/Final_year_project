@@ -1,0 +1,16 @@
+:root{
+    --primary-background:#B0BEFD;
+    --secondary-background:#ffffff;
+    --primary-text:#1A1A33;
+    --secondary-text:#2F2F4F;
+    --border:#9EAFFF;
+    --button-color:#6E85FF;
+    --button-hover-color:#4D6EFF;
+    --font-heading:salsa;   
+    --section-padding:70px 0px 70px 0px;
+    --testimonial-logo-bg:#6A7CDA;
+    --testimonial-logo:#9EAFFF;
+    --border-radius:50px;
+    --footer:#2F2F4F;
+    --bg-footer-text:#E9EDFF;
+}

@@ -1,0 +1,29 @@
+# NOTE: translated_files/ and uploads/ are no longer ignored so their contents
+# will be included in commits. If you later want to ignore them again, re-add
+# the following lines:
+# translated_files/*
+# uploads/*
+# !translated_files/.gitkeep
+# !uploads/.gitkeep
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node modules and logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo

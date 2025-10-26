@@ -1,0 +1,174 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    width: 100%;
+
+}
+
+.login_main {
+    height: 100vh;
+    width: 100%;
+    position: relative;
+    background-color: #e9edff;
+    /* let inner centered panel provide the colored background */
+}
+
+.login_pg {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100%;
+    z-index: 1;
+    /* center an inner colored panel rather than making the entire page colored */
+}
+
+.login_pg h1 {
+    font-size: 75px;
+    font-family: var(--font-heading);
+    color: var(--primary-text);
+    font-weight: bold;
+    overflow: hidden;
+}
+
+.login_pg>h1 span {
+    display: inline-block;
+}
+
+.login_pg2 {
+    height: 0%;
+    width: 100%;
+    background-color: var(--footer);
+    position: absolute;
+    bottom: 0;
+    z-index: 2;
+}
+
+.login {
+    height: 0%;
+    width: 100%;
+    background-color: var(--primary-background);
+    position: absolute;
+    bottom: 0;
+    z-index: 3;
+}
+
+.login_signup_box {
+    height: 500px;
+    width: 60%;
+    background-color: #cbc2ff;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    margin: auto;
+    border-radius: 30px;
+}
+
+.login_signup_box img {
+    height: 500px;
+    width: 100%;
+    border-radius: 30px 0 0 30px;
+}
+
+.login_signup_box .col-lg-7 {
+    padding: 0rem;
+}
+
+.login_signup_box .col-lg-5 {
+    padding: 3rem;
+}
+
+
+/* Auth UI tweaks */
+.auth_tabs {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.auth_tabs button {
+    padding: 10px 20px;
+    border-radius: 25px;
+    border: 1px solid #914ef2;
+    background: transparent;
+    cursor: pointer;
+}
+
+.auth_tabs button.active {
+    background: #914ef2;
+    color: #fff;
+}
+
+.auth_message {
+    margin: 10px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+}
+
+.auth_message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb
+}
+
+.auth_message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb
+}
+
+.auth_form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px
+}
+
+.auth_form input {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.auth_form button {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: #914ef2;
+    color: #fff;
+    cursor: pointer;
+}
+
+.auth_form .forgot_password_link,
+.auth_form .back_to_login {
+    background: none;
+    color: #914ef2;
+    text-decoration: underline;
+    padding: 8px;
+}
+
+.auth_form .forgot_password_link:hover,
+.auth_form .back_to_login:hover {
+    color: #7a3ed3;
+    background: rgba(145, 78, 242, 0.1);
+}
+
+.auth_form h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.auth_form .form_description {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}

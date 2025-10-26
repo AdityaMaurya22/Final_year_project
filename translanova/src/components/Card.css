@@ -1,0 +1,14 @@
+.aud_vid_card {
+  position:absolute;
+  background-color:var(--secondary-background);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  width: 95%;
+  text-align: center;
+  height:70vh;
+  top:-40px;
+  border: 0px;
+  left:0px;
+  right:0px;
+  margin:auto;
+}

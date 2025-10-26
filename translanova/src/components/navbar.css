@@ -1,0 +1,86 @@
+nav{
+    height: 80px;
+    width:100%;
+    background-color: rgb(255, 255, 255);
+    font-family:salsa;
+}
+
+.navbar >.container-fluid{
+    gap:100px;
+    width:95%;
+}
+
+.nav-auth-buttons {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.login_btn, .profile_btn, .logout_btn {
+    background-color: #B0BEFD;
+    border: none;
+    height: 50px;
+    padding: 0 1rem;
+    border-radius: 30px;
+    color: white;
+    font-size: 20px;
+    transition: background-color 0.2s;
+}
+
+.login_btn:hover, .profile_btn:hover {
+    background-color: #8B9BF7;
+}
+
+.logout_btn {
+    background-color: #FF6B6B;
+    width: 50px;
+    padding: 0;
+}
+
+.logout_btn:hover {
+    background-color: #FF5252;
+}
+
+.login_btn i, .profile_btn i, .logout_btn i {
+    color: white;
+}
+
+.login_link, .profile_link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 100%;
+    width: 100%;
+    color: inherit;
+    text-decoration: none;
+    padding: 0 0.5rem;
+}
+
+.login_link i, .profile_link i {
+    pointer-events: none;
+}
+
+.username {
+    font-size: 1rem;
+    color: white;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nav-link{
+    text-decoration: none;
+    color:black;
+    font-size: 20px;
+}
+
+.navbar-brand {
+    font-size: 30px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.navbar-nav{
+    grid-gap:20px;
+}

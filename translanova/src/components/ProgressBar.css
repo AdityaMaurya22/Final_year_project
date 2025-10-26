@@ -1,0 +1,24 @@
+.progress-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.progress-dot {
+  width: 2rem;
+  height: 2rem;
+  background-color: #ccc;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.progress-dot.active {
+  background-color: #5d5dff;
+}
+
+.progress-line {
+  height: 2px;
+  background-color: #ccc;
+  width: 20rem;
+}   
