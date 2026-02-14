@@ -53,7 +53,7 @@ function Home() {
                                                 <h2>Audio Translator</h2>
                                                 <p>Convert spoken language into your preferred language in real-time with crystal-clear accuracy.</p>
                                             </div>
-                                            <button>Translate Audio</button>
+                                            <button onClick={() => navigate("/audio")}>Translate Audio</button>
                                         </div>
                                         <div className="card">
                                             <div className="card_img">
