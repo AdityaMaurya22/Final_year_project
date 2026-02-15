@@ -14,6 +14,30 @@ import uuid
 import traceback
 import time
 import difflib
+from jiwer import wer
+from nltk.translate.bleu_score import sentence_bleu
+from pymongo import MongoClient
+from bson import ObjectId
+import bcrypt
+import jwt
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+MONGO_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/translanova')
+JWT_SECRET = os.getenv('JWT_SECRET', 'dev-secret-key')
+
+# MongoDB Connection
+try:
+    mongo_client = MongoClient(MONGO_URI)
+    db = mongo_client.translanova
+    users_collection = db.users
+    translations_collection = db.translations
+    print("✓ MongoDB connected")
+except Exception as e:
+    print(f"✗ MongoDB connection failed: {e}")
+    users_collection = None
+    translations_collection = None
 
 # Auto-detect GPU
 USE_GPU = torch.cuda.is_available()
@@ -22,44 +46,35 @@ model = whisper.load_model(MODEL_NAME)
 
 # Calculate translation accuracy based on model confidence
 def calculate_accuracy(original_text, translated_text, is_whisper=False):
-    """
-    Calculate translation accuracy.
-    For translations between different languages, we measure:
-    - Text preservation (word count and length preservation)
-    - Based on successful translation completion
-    Returns accuracy percentage between 0-100.
-    """
-    if not original_text or not translated_text:
-        return 0
-    
     try:
-        # Measure text preservation - how well the length is preserved
-        original_length = len(original_text.split())  # word count
-        translated_length = len(translated_text.split())
-        
-        # Calculate length preservation ratio (how close in word count)
-        if original_length > 0:
-            length_ratio = min(original_length, translated_length) / max(original_length, translated_length)
-        else:
-            length_ratio = 0
-        
-        # Check if translation contains meaning (not error message)
-        is_valid = not ('failed' in translated_text.lower() or 'error' in translated_text.lower())
-        
-        # Base accuracy: word preservation + validity check
-        # If translation is valid and preserves structure, accuracy is high
-        if is_valid and length_ratio > 0.7:
-            accuracy = 85 + (length_ratio * 15)  # 85-100% for valid translations
-        elif is_valid:
-            accuracy = 70 + (length_ratio * 15)  # 70-85% for valid but length-different translations
-        else:
-            accuracy = 30  # Low accuracy for error translations
-        
-        return round(min(100, accuracy), 2)
-    
+        if not original_text or not translated_text:
+            return 0
+
+        # 🔹 WER speech accuracy
+        error_rate = wer(original_text.lower(), translated_text.lower())
+        speech_accuracy = (1 - error_rate) * 100
+
+        # 🔹 BLEU translation accuracy
+        ref = [original_text.lower().split()]
+        candidate = translated_text.lower().split()
+        bleu = sentence_bleu(ref, candidate)
+        bleu_score = bleu * 100
+
+        # 🔹 length preservation
+        len_ratio = min(len(original_text), len(translated_text)) / max(len(original_text), len(translated_text))
+        length_score = len_ratio * 100
+
+        # 🔹 similarity using difflib
+        similarity = difflib.SequenceMatcher(None, original_text.lower(), translated_text.lower()).ratio() * 100
+
+        # 🔹 final combined ultra score
+        final_accuracy = (speech_accuracy * 0.4) + (bleu_score * 0.3) + (similarity * 0.2) + (length_score * 0.1)
+
+        return round(final_accuracy, 2)
+
     except Exception as e:
-        print(f"Error calculating accuracy: {e}")
-        return 75.0  # Default reasonable accuracy
+        print("Accuracy error:", e)
+        return 75.0
 
 # Translation function (Google)
 def translate_google(text, lang="hi"):
@@ -175,6 +190,155 @@ flask_app = Flask(__name__)
 # Allow cross-origin requests from the frontend (e.g. http://localhost:3000)
 CORS(flask_app)
 
+# AUTH ENDPOINTS
+@flask_app.route('/auth/register', methods=['POST'])
+def register():
+    try:
+        if users_collection is None:
+            return jsonify({'error': 'Database unavailable'}), 500
+        
+        data = request.json
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not all([username, email, password]):
+            return jsonify({'error': 'Missing fields'}), 400
+        
+        # Check if user exists
+        if users_collection.find_one({'email': email}):
+            return jsonify({'error': 'Email already registered'}), 409
+        if users_collection.find_one({'username': username}):
+            return jsonify({'error': 'Username taken'}), 409
+        
+        # Hash password and create user
+        pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        user = {
+            'username': username,
+            'email': email,
+            'passwordHash': pw_hash,
+            'createdAt': datetime.utcnow()
+        }
+        result = users_collection.insert_one(user)
+        user_id = str(result.inserted_id)
+        
+        # Create JWT token
+        token = jwt.encode(
+            {'id': user_id, 'email': email, 'exp': datetime.utcnow() + timedelta(days=7)},
+            JWT_SECRET,
+            algorithm='HS256'
+        )
+        
+        return jsonify({
+            'token': token,
+            'user': {'id': user_id, 'username': username, 'email': email}
+        }), 201
+    except Exception as e:
+        print(f"Register error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@flask_app.route('/auth/login', methods=['POST'])
+def login():
+    try:
+        if users_collection is None:
+            return jsonify({'error': 'Database unavailable'}), 500
+        
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({'error': 'Missing fields'}), 400
+        
+        user = users_collection.find_one({'email': email})
+        if not user:
+            return jsonify({'error': 'Invalid credentials'}), 401
+        
+        if not bcrypt.checkpw(password.encode(), user['passwordHash']):
+            return jsonify({'error': 'Invalid credentials'}), 401
+        
+        user_id = str(user['_id'])
+        token = jwt.encode(
+            {'id': user_id, 'email': email, 'exp': datetime.utcnow() + timedelta(days=7)},
+            JWT_SECRET,
+            algorithm='HS256'
+        )
+        
+        return jsonify({
+            'token': token,
+            'user': {'id': user_id, 'username': user.get('username'), 'email': email}
+        }), 200
+    except Exception as e:
+        print(f"Login error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@flask_app.route('/auth/profile', methods=['GET'])
+def get_profile():
+    try:
+        if users_collection is None:
+            return jsonify({'error': 'Database unavailable'}), 500
+        
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        user_id = payload.get('id')
+        
+        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({
+            'id': str(user['_id']),
+            'username': user.get('username'),
+            'email': user.get('email')
+        })
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        print(f"Profile error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@flask_app.route('/user/translations', methods=['GET'])
+def get_user_translations():
+    try:
+        # Extract user_id from Bearer token
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        user_id = payload.get('id')
+        
+        if translations_collection is None:
+            return jsonify({'error': 'Database unavailable'}), 500
+        
+        # Get all translations for this user
+        translations = list(translations_collection.find(
+            {'user_id': user_id},
+            {'_id': 1, 'original_filename': 1, 'translated_filename': 1, 'media_type': 1, 
+             'target_language': 1, 'translation_time': 1, 'accuracy': 1, 'timestamp': 1}
+        ).sort('timestamp', -1))
+        
+        # Convert ObjectId to string
+        for trans in translations:
+            trans['_id'] = str(trans['_id'])
+            trans['timestamp'] = trans['timestamp'].isoformat() if trans.get('timestamp') else None
+        
+        return jsonify({'translations': translations})
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        print(f"Get translations error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @flask_app.route('/languages', methods=['GET'])
 def get_languages():
     return jsonify(lang_options)
@@ -183,6 +347,18 @@ def get_languages():
 def upload_and_translate():
     try:
         print(" Received upload request")
+        
+        # Extract user_id from Bearer token
+        user_id = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            try:
+                token = auth_header.split(' ')[1]
+                payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+                user_id = payload.get('id')
+                print(f" User ID: {user_id}")
+            except:
+                print(" Token validation failed")
         
         if 'file' not in request.files:
             print(" No file in request")
@@ -256,9 +432,10 @@ def upload_and_translate():
             
             # Calculate accuracy metrics - based on successful completion and content preservation
             # Accuracy is measured on how well content is preserved through translation steps
-            accuracy_whisper = 90.0  # Whisper is highly accurate for transcription
-            accuracy_english = 85.0  # Good accuracy for Whisper's English translation
-            accuracy_final = 80.0 if len(final_translation.split()) > len(whisper_english.split()) * 0.7 else 75.0  # Based on content preservation
+            accuracy_whisper = calculate_accuracy(original_transcript, original_transcript)
+            accuracy_english = calculate_accuracy(original_transcript, whisper_english)
+            accuracy_final = calculate_accuracy(whisper_english, final_translation)
+
             
             # Step 6: TTS
             print(" Generating speech...")
@@ -307,8 +484,31 @@ def upload_and_translate():
             if is_video and os.path.exists(synced_audio):
                 os.remove(synced_audio)
             
+            # Save translation metadata to MongoDB
+            translation_id = None
+            if translations_collection is not None and user_id:
+                translation_metadata = {
+                    'user_id': user_id,
+                    'original_filename': file.filename,
+                    'translated_filename': output_filename,
+                    'media_type': 'video' if is_video else 'audio',
+                    'original_language': 'auto',
+                    'target_language': target_lang,
+                    'translation_time': total_translation_time,
+                    'accuracy': round((accuracy_whisper + accuracy_english + accuracy_final) / 3, 2),
+                    'timestamp': datetime.utcnow(),
+                    'status': 'completed'
+                }
+                try:
+                    result = translations_collection.insert_one(translation_metadata)
+                    translation_id = str(result.inserted_id)
+                    print(f" Translation saved to DB: {translation_id}")
+                except Exception as db_error:
+                    print(f" Error saving to DB: {db_error}")
+            
             return jsonify({
                 'success': True,
+                'translation_id': translation_id,
                 'audio_file' if not is_video else 'video_file': output_filename,
                 'original_transcript': original_transcript,
                 'whisper_english': whisper_english,

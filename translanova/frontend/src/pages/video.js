@@ -130,6 +130,30 @@ function Video() {
     };
   }, []);
 
+  // Load the translated video when URL changes
+  useEffect(() => {
+    const v = translatedVideoRef.current;
+    if (v && translatedVideoUrl) {
+      try {
+        v.load(); // Tell browser to reload the video from new source
+      } catch (e) {
+        console.error('Error loading translated video:', e);
+      }
+    }
+  }, [translatedVideoUrl]);
+
+  // Load the original video when URL changes
+  useEffect(() => {
+    const v = originalVideoRef.current;
+    if (v && originalVideoUrl) {
+      try {
+        v.load(); // Tell browser to reload the video from new source
+      } catch (e) {
+        console.error('Error loading original video:', e);
+      }
+    }
+  }, [originalVideoUrl]);
+
   const handleNext = () => {
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
@@ -169,12 +193,21 @@ function Video() {
     setError(null);
     setTranslationResult(null);
     setTranslatedVideoUrl(null);
+    setTranslationTime(null);
+    setAccuracy(null);
+    setTimingBreakdown(null);
     setOriginalDuration(null);
     setTranslatedDuration(null);
+    setCurrentStep(1); // Reset to step 1
     
     // Create URL for preview
     const url = URL.createObjectURL(file);
     setOriginalVideoUrl(url);
+    
+    // Reset file input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleDragOver = (event) => {

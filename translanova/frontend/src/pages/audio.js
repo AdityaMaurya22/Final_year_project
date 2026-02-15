@@ -54,7 +54,7 @@ function Audio() {
     loadLanguages();
   }, []);
 
-  // Cleanup object URLs on component unmount
+  // Cleanup object URLs ONLY on component unmount (not on URL changes)
   useEffect(() => {
     return () => {
       if (originalAudioUrl) {
@@ -64,7 +64,7 @@ function Audio() {
         URL.revokeObjectURL(translatedAudioUrl);
       }
     };
-  }, [originalAudioUrl, translatedAudioUrl]);
+  }, []);
 
   // Sync audio playback between original and translated audio (simple, no auto-play)
   useEffect(() => {
@@ -112,7 +112,31 @@ function Audio() {
       translatedAudio.removeEventListener('seeking', handleTranslatedSeeking);
       translatedAudio.removeEventListener('loadedmetadata', align);
     };
-  }, [originalAudioUrl, translatedAudioUrl]);
+  }, []);
+
+  // Load the translated audio when URL changes
+  useEffect(() => {
+    const a = translatedAudioRef.current;
+    if (a && translatedAudioUrl) {
+      try {
+        a.load(); // Tell browser to reload the audio from new source
+      } catch (e) {
+        console.error('Error loading translated audio:', e);
+      }
+    }
+  }, [translatedAudioUrl]);
+
+  // Load the original audio when URL changes
+  useEffect(() => {
+    const a = originalAudioRef.current;
+    if (a && originalAudioUrl) {
+      try {
+        a.load(); // Tell browser to reload the audio from new source
+      } catch (e) {
+        console.error('Error loading original audio:', e);
+      }
+    }
+  }, [originalAudioUrl]);
 
   const handleNext = () => {
     if (currentStep < steps.length) {
@@ -153,10 +177,19 @@ function Audio() {
     setError(null);
     setTranslationResult(null);
     setTranslatedAudioUrl(null);
+    setTranslationTime(null);
+    setAccuracy(null);
+    setTimingBreakdown(null);
+    setCurrentStep(1); // Reset to step 1
     
     // Create URL for preview
     const url = URL.createObjectURL(file);
     setOriginalAudioUrl(url);
+    
+    // Reset file input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleDragOver = (event) => {

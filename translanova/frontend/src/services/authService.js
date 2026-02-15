@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const AUTH_URL = 'http://localhost:5001/api';
+// Flask backend base URL (auth + translation API)
+const AUTH_URL = 'http://localhost:8501';
 
 const authApi = axios.create({
   baseURL: AUTH_URL,
@@ -86,8 +87,8 @@ export const saveTranslation = async (translationData) => {
 
 export const getUserTranslations = async () => {
   try {
-    const response = await authApi.get('/translations');
-    return response.data;
+    const response = await authApi.get('/user/translations');
+    return response.data.translations || [];
   } catch (error) {
     throw error.response?.data?.error || 'Failed to fetch translations';
   }

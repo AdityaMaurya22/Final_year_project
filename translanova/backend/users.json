@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1771173620086",
+    "username": "AdityaM22",
+    "email": "abc123@gmail.com",
+    "passwordHash": "$2a$10$LI1eNPxw4NwDh/w32SPDEug.gLTH7lywTSr7hDqNmNNASZM/CfaTe",
+    "createdAt": "2026-02-15T16:40:20.086Z"
+  },
+  {
+    "id": "1771176330048",
+    "username": "test",
+    "email": "test@gmail.com",
+    "passwordHash": "$2a$10$tEwr5mpKjQ5b2zXaO7UUXeBCiNXylvDVzCsCk.eVx7tBaLr0N6cq.",
+    "createdAt": "2026-02-15T17:25:30.048Z"
+  }
+]
