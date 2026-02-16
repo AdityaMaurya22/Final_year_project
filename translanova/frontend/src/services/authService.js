@@ -31,30 +31,34 @@ authApi.interceptors.request.use((config) => {
 
 export const register = async (username, email, password) => {
   try {
-    const response = await authApi.post('/auth/register', {
+    // Use new lightweight user creation endpoint
+    const response = await authApi.post('/user/create', {
       username,
-      email,
-      password,
+      email
     });
-    return response.data;
+    const user = response.data?.user;
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+      return { user };
+    }
+    throw new Error('Registration failed');
   } catch (error) {
-    throw error.response?.data?.error || 'Registration failed';
+    throw error.response?.data?.error || error.message || 'Registration failed';
   }
 };
 
 export const login = async (email, password) => {
   try {
-    const response = await authApi.post('/auth/login', {
-      email,
-      password,
-    });
-    const { token, user } = response.data;
-    // Store token and user info
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    return { token, user };
+    // Call lightweight login endpoint by email (no password)
+    const response = await authApi.post('/user/login', { email });
+    const user = response.data?.user;
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+      return { user };
+    }
+    throw new Error('Login failed');
   } catch (error) {
-    throw error.response?.data?.error || 'Login failed';
+    throw error.response?.data?.error || error.message || 'Login failed';
   }
 };
 
@@ -73,7 +77,7 @@ export const getCurrentUser = () => {
 };
 
 export const isAuthenticated = () => {
-  return !!localStorage.getItem('token');
+  return !!localStorage.getItem('token') || !!getCurrentUser();
 };
 
 export const saveTranslation = async (translationData) => {
@@ -87,7 +91,11 @@ export const saveTranslation = async (translationData) => {
 
 export const getUserTranslations = async () => {
   try {
-    const response = await authApi.get('/user/translations');
+    // Provide user_id via query param because backend no longer requires JWT
+    const user = getCurrentUser();
+    const params = {};
+    if (user && user.id) params.user_id = user.id;
+    const response = await authApi.get('/user/translations', { params });
     return response.data.translations || [];
   } catch (error) {
     throw error.response?.data?.error || 'Failed to fetch translations';
@@ -97,19 +105,19 @@ export const getUserTranslations = async () => {
 export const getUserProfile = async () => {
   try {
     console.log('Fetching user profile...');
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
+    // Prefer local stored user to avoid unnecessary backend calls and CORS preflights
+    const localUser = getCurrentUser();
+    if (localUser) return localUser;
+
+    // If no local user, attempt to fetch from backend
+    try {
+      const response = await authApi.get('/user/profile');
+      console.log('Profile response:', response.data);
+      if (response.data && typeof response.data === 'object') return response.data;
+    } catch (err) {
+      console.warn('Profile endpoint unavailable and no local user');
+      throw err;
     }
-
-    const response = await authApi.get('/user/profile');
-    console.log('Profile response:', response.data);
-
-    if (!response.data || typeof response.data !== 'object') {
-      throw new Error('Invalid profile data received');
-    }
-
-    return response.data;
   } catch (error) {
     console.error('Error fetching profile:', error.response || error);
     

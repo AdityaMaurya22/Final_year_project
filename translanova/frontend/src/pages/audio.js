@@ -254,15 +254,22 @@ function Audio() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (translationResult && translationResult.audio_file) {
-      // Download the translated file from Python backend
-      const link = document.createElement('a');
-      link.href = `http://localhost:8501/download/${translationResult.audio_file}`;
-      link.download = translationResult.audio_file;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        const blob = await translationService.downloadFile(translationResult.audio_file);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = translationResult.audio_file;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Download failed:', err);
+        setError('Download failed. Please try again.');
+      }
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
+import translationService from '../services/translationService';
 import '../styles/profile.css';
 
 function Profile() {
@@ -61,7 +62,14 @@ function Profile() {
 
                 if (profileRes && typeof profileRes === 'object') {
                     setUser(profileRes);
-                    setTranslations(Array.isArray(translationsRes) ? translationsRes : []);
+                    // Normalize translation entries for frontend compatibility
+                    const raw = Array.isArray(translationsRes) ? translationsRes : [];
+                    const normalized = raw.map(t => ({
+                        ...t,
+                        originalFile: t.originalFile || t.original_filename || t.filename || null,
+                        translatedFile: t.translatedFile || t.translated_filename || t.translated_filename || null,
+                    }));
+                    setTranslations(normalized);
                 } else {
                     throw new Error('Invalid profile data received');
                 }
@@ -148,7 +156,7 @@ function Profile() {
         if (!filename) return '#';
         // If filename already looks like a full URL, return it
         if (filename.startsWith('http://') || filename.startsWith('https://')) return filename;
-        return `http://localhost:5001/uploads/${filename}`;
+        return `http://localhost:8501/download/${filename}`;
     };
 
     const getBaseName = (path) => {
@@ -371,7 +379,27 @@ function Profile() {
                                                             <p className="media-missing">Translated file not available</p>
                                                         )}
                                                         {translation.translatedFile && (
-                                                            <a href={getFileUrl(translation.translatedFile)} className="download-button" target="_blank" rel="noopener noreferrer">Download Translated</a>
+                                                            <button
+                                                                className="download-button"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        const blob = await translationService.downloadFile(translation.translatedFile);
+                                                                        const url = window.URL.createObjectURL(blob);
+                                                                        const a = document.createElement('a');
+                                                                        a.href = url;
+                                                                        a.download = translation.translatedFile;
+                                                                        document.body.appendChild(a);
+                                                                        a.click();
+                                                                        document.body.removeChild(a);
+                                                                        window.URL.revokeObjectURL(url);
+                                                                    } catch (err) {
+                                                                        console.error('Download failed:', err);
+                                                                        alert('Download failed.');
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Download Translated
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>

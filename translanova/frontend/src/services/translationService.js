@@ -58,6 +58,15 @@ export const translateAudio = async (file, targetLanguage) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('target_lang', targetLanguage);
+    // Attach user_id if available so backend can associate translation
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      if (currentUser && currentUser.id) {
+        formData.append('user_id', currentUser.id);
+      }
+    } catch (e) {
+      // ignore
+    }
     
     // Call the Python backend
     const response = await fetch(`${BACKEND_URL}/upload`, {
@@ -110,6 +119,15 @@ export const translateVideo = async (file, targetLanguage) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('target_lang', targetLanguage);
+    // Attach user_id if available so backend can associate translation
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      if (currentUser && currentUser.id) {
+        formData.append('user_id', currentUser.id);
+      }
+    } catch (e) {
+      // ignore
+    }
     
     // Call the Python backend
     const response = await fetch(`${BACKEND_URL}/upload`, {
